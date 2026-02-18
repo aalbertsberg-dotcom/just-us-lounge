@@ -349,7 +349,7 @@ function renderEvents(events) {
           <button class="modal-close" onclick="closeModal('${id}')">✕</button>
           <div class="modal-content">
             <div class="modal-tag" style="color:${t.tag}">${ev.emoji || '🎉'} ${ev.schedule}</div>
-            <div class="modal-h1">${ev.name.toUpperCase().replace(/ /g,'<br>')}</div>
+            <div class="modal-h1">${(ev.name || '').toUpperCase().replace(/ /g,'<br>')}</div>
             <div class="modal-sub" style="color:${t.sub}">${ev.time}${ev.cover ? ' · '+ev.cover : ''}</div>
             <div class="modal-grid">
               <div class="modal-desc">
@@ -405,9 +405,9 @@ async function loadEvents() {
 
     const events = rows.map(row => {
       const obj = {};
-      cols.forEach((col, i) => { obj[col] = row.c[i] ? (row.c[i].v || '') : ''; });
+      cols.forEach((col, i) => { obj[col] = row.c[i] ? String(row.c[i].v || '') : ''; });
       return obj;
-    });
+    }).filter(ev => ev.name && ev.name.trim() !== '' && ev.name.toLowerCase() !== 'event name');
 
     if (loadEl) loadEl.remove();
     renderEvents(events);
