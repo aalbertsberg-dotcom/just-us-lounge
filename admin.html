@@ -311,11 +311,30 @@ form.addEventListener('submit', async function(e) {
     return;
   }
 
+  // Normalize time input — accept "10pm", "10:30pm", "10:00 PM" etc → "10:00 PM"
+  function normalizeTime(raw) {
+    if (!raw) return raw;
+    const s = raw.trim();
+    const m = s.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i);
+    if (m) {
+      let h = parseInt(m[1]), mn = m[2] ? m[2] : '00', ap = m[3].toUpperCase();
+      return h + ':' + mn + ' ' + ap;
+    }
+    return s; // pass through if already formatted
+  }
+
+  // Normalize schedule — capitalise first letter, trim
+  function normalizeSchedule(raw) {
+    if (!raw) return raw;
+    const s = raw.trim();
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
   // Gather all fields
   const data = {
     name,
-    schedule,
-    time,
+    schedule:    normalizeSchedule(schedule),
+    time:        normalizeTime(time),
     cover:       form.cover.value.trim(),
     emoji:       form.emoji.value.trim(),
     color:       form.querySelector('[name="color"]:checked').value,
