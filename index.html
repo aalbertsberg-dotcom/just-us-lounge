@@ -14,7 +14,7 @@
     /* NAV */
     nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;justify-content:space-between;align-items:center;padding:.9rem 2.5rem;background:linear-gradient(to bottom,rgba(7,7,15,.97),transparent);backdrop-filter:blur(6px)}
     .nav-logo-wrap{display:flex;align-items:center;gap:.8rem;text-decoration:none}
-    .nav-logo-img{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid rgba(0,240,255,.35);box-shadow:0 0 12px rgba(0,240,255,.25)}
+    .nav-logo-img{width:44px;height:44px;border-radius:50%;object-fit:contain;background:#0a0118;border:2px solid rgba(0,240,255,.35);box-shadow:0 0 12px rgba(0,240,255,.25)}
     .nav-logo-text{font-family:'Bebas Neue',cursive;font-size:1.4rem;letter-spacing:.12em;color:var(--cyan);text-shadow:0 0 14px rgba(0,240,255,.5)}
     .nav-links{display:flex;gap:1.8rem;list-style:none}
     .nav-links a{color:var(--muted);text-decoration:none;font-size:.82rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;transition:color .2s}
@@ -23,7 +23,7 @@
     /* HERO */
     .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:8rem 2rem 4rem;position:relative;overflow:hidden}
     .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 55% at 50% 65%,rgba(180,79,255,.16) 0%,transparent 70%),radial-gradient(ellipse 55% 40% at 18% 80%,rgba(255,45,120,.12) 0%,transparent 60%),radial-gradient(ellipse 50% 38% at 82% 20%,rgba(0,240,255,.1) 0%,transparent 60%);pointer-events:none}
-    .hero-logo{width:170px;height:170px;border-radius:50%;object-fit:cover;border:3px solid rgba(0,240,255,.3);box-shadow:0 0 50px rgba(0,240,255,.2),0 0 100px rgba(180,79,255,.12);margin-bottom:1.8rem;animation:fadeUp .8s ease both}
+    .hero-logo{width:170px;height:170px;border-radius:50%;object-fit:contain;background:#0a0118;border:3px solid rgba(0,240,255,.3);box-shadow:0 0 50px rgba(0,240,255,.2),0 0 100px rgba(180,79,255,.12);margin-bottom:1.8rem;animation:fadeUp .8s ease both}
     .hero-badge{display:inline-block;background:rgba(255,45,120,.1);border:1px solid rgba(255,45,120,.35);color:var(--pink);font-size:.72rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;padding:.35rem 1rem;border-radius:2rem;margin-bottom:1.2rem;animation:fadeUp .8s .1s ease both}
     .hero h1{font-family:'Bebas Neue',cursive;font-size:clamp(4rem,12vw,10rem);line-height:.9;letter-spacing:.04em;background:linear-gradient(135deg,#fff 0%,var(--cyan) 50%,var(--purple) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:fadeUp .8s .2s ease both;position:relative;z-index:1}
     .hero-sub{font-size:clamp(.9rem,2.5vw,1.3rem);letter-spacing:.25em;color:var(--muted);text-transform:uppercase;margin-top:.6rem;animation:fadeUp .8s .35s ease both}
@@ -406,18 +406,38 @@ async function loadEvents() {
                   'description','extra_info','performers','facebook',
                   'age','dress_code','active'];
 
+    // Convert gviz Date() values back to readable strings
+    function parseCell(val) {
+      if (val === null || val === undefined) return '';
+      const s = String(val).trim();
+      // gviz returns dates as Date(year,month0,day) and times as Date(1899,11,30,h,m,s)
+      const m = s.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/i);
+      if (m) {
+        const yr=+m[1], mo=+m[2], dy=+m[3], hr=m[4]!==undefined?+m[4]:null, mn=m[5]!==undefined?+m[5]:0;
+        if (hr !== null && yr <= 1900) {
+          // Pure time value
+          const ap = hr >= 12 ? 'PM' : 'AM';
+          const h12 = hr % 12 || 12;
+          return h12 + ':' + String(mn).padStart(2,'0') + ' ' + ap;
+        }
+        // Date value
+        const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return MONTHS[mo] + ' ' + dy + ', ' + yr;
+      }
+      return s;
+    }
+
     console.log('[JU] total rows:', rows ? rows.length : 0);
 
     const events = (rows || []).map(row => {
       const obj = {};
       COLS.forEach((col, i) => {
         const cell = row.c ? row.c[i] : null;
-        obj[col] = (cell && cell.v !== null && cell.v !== undefined) ? String(cell.v).trim() : '';
+        obj[col] = cell ? parseCell(cell.v) : '';
       });
       return obj;
     }).filter(ev => {
       const n = (ev.name || '').trim().toLowerCase();
-      // Skip blank rows, the friendly-label row, and any header-like rows
       return n !== '' && n !== 'event name' && n !== 'name';
     });
 
