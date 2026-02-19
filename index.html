@@ -400,34 +400,34 @@ async function loadEvents() {
     const text = await res.text();
     const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);/)[1]);
     const rows = json.table.rows;
-    const cols = json.table.cols.map(c => (c.label || '').trim().toLowerCase().replace(/\s+/g,'_'));
 
-    console.log('[JU] cols:', cols);
-    console.log('[JU] total rows from sheet:', rows ? rows.length : 'null');
+    // Hardcode column order — must match the sheet column order exactly
+    const COLS = ['name','schedule','time','cover','emoji','color',
+                  'description','extra_info','performers','facebook',
+                  'age','dress_code','active'];
 
-    const SKIP = ['event name','name','schedule / when','friendly label','label',''];
+    console.log('[JU] total rows:', rows ? rows.length : 0);
 
-    const events = rows.map(row => {
+    const events = (rows || []).map(row => {
       const obj = {};
-      cols.forEach((col, i) => {
+      COLS.forEach((col, i) => {
         const cell = row.c ? row.c[i] : null;
         obj[col] = (cell && cell.v !== null && cell.v !== undefined) ? String(cell.v).trim() : '';
       });
       return obj;
     }).filter(ev => {
       const n = (ev.name || '').trim().toLowerCase();
-      const keep = n !== '' && !SKIP.includes(n);
-      if (!keep) console.log('[JU] skipped row, name was:', JSON.stringify(n));
-      return keep;
+      // Skip blank rows, the friendly-label row, and any header-like rows
+      return n !== '' && n !== 'event name' && n !== 'name';
     });
 
-    console.log('[JU] events passing filter:', events.length, events.map(e => e.name));
+    console.log('[JU] events loaded:', events.length, events.map(e => e.name));
 
     if (loadEl) loadEl.remove();
     if (events.length === 0) {
       const msg = document.createElement('div');
       msg.className = 'loading-state';
-      msg.textContent = 'Sheet connected but no events found — open Console (F12) to see details.';
+      msg.textContent = 'No active events found — check that the Events sheet has data in rows 3+.';
       document.getElementById('eventsGrid').appendChild(msg);
     } else {
       renderEvents(events);
