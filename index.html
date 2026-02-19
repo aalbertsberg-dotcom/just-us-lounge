@@ -401,17 +401,24 @@ async function loadEvents() {
     // Google wraps JSON in /*O_o*/\ngoogle.visualization.Query.setResponse({...})
     const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);/)[1]);
     const rows = json.table.rows;
-    const cols = json.table.cols.map(c => c.label.toLowerCase().replace(/\s+/g,'_'));
+    const cols = json.table.cols.map(c => (c.label || '').trim().toLowerCase().replace(/\s+/g,'_'));
+    const SKIP = ['event name','name','schedule / when','friendly label','label',''];
 
     const events = rows.map(row => {
       const obj = {};
-      cols.forEach((col, i) => { obj[col] = row.c[i] ? String(row.c[i].v || '') : ''; });
+      cols.forEach((col, i) => {
+        const cell = row.c ? row.c[i] : null;
+        obj[col] = (cell && cell.v !== null && cell.v !== undefined) ? String(cell.v).trim() : '';
+      });
       return obj;
-    }).filter(ev => ev.name && ev.name.trim() !== '' && ev.name.toLowerCase() !== 'event name');
+    }).filter(ev => {
+      const n = (ev.name || '').trim().toLowerCase();
+      return n !== '' && !SKIP.includes(n);
+    });
 
     if (loadEl) loadEl.remove();
     renderEvents(events);
-    statusEl.innerHTML = `<div class="sync-badge">✓ Live · Auto-synced from Google Sheets</div>`;
+    statusEl.innerHTML = `<div class="sync-badge">✓ Live</div>`;
   } catch(err) {
     console.warn('Sheet load failed, using fallback:', err);
     if (loadEl) loadEl.remove();
